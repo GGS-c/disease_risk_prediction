@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Patient Dashboard - SmartCare AI{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between bg-white pl-6 pr-8 py-6 rounded-2xl shadow-sm border border-gray-100">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Welcome, {{ patient.name }}!</h1>
+            <p class="text-gray-500 mt-1">Here is a quick overview of your health predictions.</p>
+        </div>
+        <a href="/heart" class="hidden md:inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-medical-600 hover:bg-medical-700 transition-colors">
+            <svg class="mr-2 -ml-1 text-white h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            New Prediction
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center shadow-sm">
+            <div class="p-4 bg-medical-50 text-medical-600 rounded-xl mr-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500">Total Predictions</p>
+                <h3 class="text-2xl font-bold text-gray-800">{{ total_predictions }}</h3>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center shadow-sm">
+            <div class="p-4 bg-green-50 text-green-600 rounded-xl mr-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500">Account status</p>
+                <h3 class="text-2xl font-bold text-gray-800">Active</h3>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center shadow-sm">
+            <div class="p-4 bg-purple-50 text-purple-600 rounded-xl mr-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500">Member Since</p>
+                <h3 class="text-lg font-bold text-gray-800">{{ patient.created_at.strftime('%b %Y') }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Predictions -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h3 class="text-lg font-bold text-gray-800">Recent Predictions</h3>
+            <a href="/profile" class="text-sm font-medium text-medical-600 hover:text-medical-800">View All</a>
+        </div>
+        
+        {% if predictions %}
+            <div class="p-6 relative">
+                <!-- Vertical line -->
+                <div class="absolute left-10 md:left-24 top-10 bottom-10 w-0.5 bg-gray-200 hidden md:block"></div>
+                
+                <div class="space-y-8">
+                    {% for record in predictions %}
+                    <div class="relative flex flex-col md:flex-row gap-4 md:gap-8 items-start">
+                        <!-- Date Column -->
+                        <div class="md:w-32 flex-shrink-0 pt-2 text-left md:text-right z-10 hidden md:block">
+                            <p class="text-sm font-bold text-gray-800">{{ record.created_at.strftime('%d %b') }}</p>
+                            <p class="text-xs text-gray-500">{{ record.created_at.strftime('%Y, %H:%M') }}</p>
+                        </div>
+                        
+                        <!-- Timeline Node -->
+                        <div class="absolute left-[-1.1rem] md:static w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-sm z-10 hidden md:flex {% if 'Heart' in record.disease_type %}bg-red-100 text-red-500{% else %}bg-green-100 text-green-500{% endif %}">
+                            {% if 'Heart' in record.disease_type %}
+                                <i class="fa-solid fa-heart-pulse"></i>
+                            {% else %}
+                                <i class="fa-solid fa-dna"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Card Content -->
+                        <div class="flex-grow bg-white border border-gray-100 shadow-sm rounded-xl p-5 hover:shadow-md transition-shadow">
+                            <div class="md:hidden mb-2">
+                                <p class="text-xs font-bold text-gray-500">{{ record.created_at.strftime('%d %b %Y, %H:%M') }}</p>
+                            </div>
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                <div>
+                                    <h4 class="font-bold text-gray-900 text-lg flex items-center gap-2">
+                                        {{ record.disease_type }} Risk Assessment
+                                    </h4>
+                                    <p class="text-sm text-gray-500 mt-1">AI Confidence Score: <span class="font-bold">{{ record.probability|default('N/A') }}%</span></p>
+                                </div>
+                                <div>
+                                    {% if 'High' in record.risk_result %}
+                                        <span class="px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800 shadow-sm border border-red-200">
+                                            <i class="fa-solid fa-triangle-exclamation mr-1 mt-[2px]"></i> {{ record.risk_result }}
+                                        </span>
+                                    {% else %}
+                                        <span class="px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800 shadow-sm border border-green-200">
+                                            <i class="fa-solid fa-check-circle mr-1 mt-[2px]"></i> {{ record.risk_result }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-16 px-6">
+                <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No predictions yet</h3>
+                <p class="mt-1 text-sm text-gray-500">Get started by running your first health prediction.</p>
+                <div class="mt-6">
+                    <a href="/heart" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-medical-600 hover:bg-medical-700">
+                        Start Prediction
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

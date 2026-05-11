@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block title %}Login - SmartCare AI{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-medical-50 overflow-hidden mt-8">
+    <div class="px-8 py-10">
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-medical-50 text-medical-600 mb-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800">Welcome Back</h2>
+            <p class="text-gray-500 text-sm mt-2">Sign in to your patient portal</p>
+        </div>
+        
+        <form action="/login" method="POST" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="email">Email Address</label>
+                <input type="email" name="email" id="email" required class="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-medical-500 focus:border-medical-500 transition-colors" placeholder="you@example.com">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="password">Password</label>
+                <input type="password" name="password" id="password" required class="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-medical-500 focus:border-medical-500 transition-colors" placeholder="••••••••">
+            </div>
+            
+            <button type="submit" class="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-medical-600 hover:bg-medical-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-medical-500 transition-all transform hover:-translate-y-0.5">
+                Sign In
+            </button>
+        </form>
+        
+        <div class="mt-8 pt-6 border-t border-gray-100 text-center">
+            <p class="text-sm text-gray-600">
+                Don't have an account? <a href="/register" class="font-bold text-medical-600 hover:text-medical-800 transition-colors">Register now</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

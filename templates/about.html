@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}About - SmartCare AI{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Header -->
+    <div class="text-center mb-16 relative">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-[#0a2540] tracking-tight mb-4" data-translate="about_title">About SmartCare AI</h1>
+        <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto" data-translate="about_subtitle">Revolutionizing early disease detection with advanced machine learning algorithms and a premium user experience.</p>
+        <div class="absolute w-24 h-1 bg-[#00c9a7] left-1/2 transform -translate-x-1/2 mt-6 rounded-full"></div>
+    </div>
+
+    <!-- Mission & Vision -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
+            <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-sm">
+                <i class="fa-solid fa-bullseye"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-3" data-translate="our_mission">Our Mission</h3>
+            <p class="text-gray-600 leading-relaxed">
+                To provide accessible, high-accuracy preliminary health assessments for cardiovascular and hepatic conditions. By leveraging AI, we aim to bridge the gap between initial symptom onset and clinical diagnosis, empowering users with early awareness.
+            </p>
+        </div>
+        
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-[#00c9a7]/10 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
+            <div class="w-14 h-14 bg-[#00c9a7]/20 text-[#00b397] rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-sm">
+                <i class="fa-solid fa-eye"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-3" data-translate="our_vision">Our Vision</h3>
+            <p class="text-gray-600 leading-relaxed">
+                A world where advanced clinical-grade analytics are available at the fingertips of every individual, ensuring proactive healthcare management and reducing the burden of late-stage disease discovery.
+            </p>
+        </div>
+    </div>
+
+    <!-- Technologies -->
+    <div class="mb-16">
+        <h2 class="text-2xl font-bold text-center text-[#0a2540] mb-10" data-translate="tech_stack">Technology Stack</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 transition-transform">
+                <i class="fa-brands fa-python text-5xl text-[#3776AB] mb-4"></i>
+                <h4 class="font-bold text-gray-800">Python</h4>
+                <p class="text-xs text-gray-500 mt-2">Core ML Logic</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 transition-transform">
+                <i class="fa-solid fa-server text-5xl text-gray-700 mb-4"></i>
+                <h4 class="font-bold text-gray-800">Flask</h4>
+                <p class="text-xs text-gray-500 mt-2">Backend Framework</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 transition-transform">
+                <i class="fa-solid fa-brain text-5xl text-purple-500 mb-4"></i>
+                <h4 class="font-bold text-gray-800">Scikit-Learn</h4>
+                <p class="text-xs text-gray-500 mt-2">Predictive Modeling</p>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center hover:-translate-y-1 transition-transform">
+                <i class="fa-brands fa-css3-alt text-5xl text-[#38B2AC] mb-4"></i>
+                <h4 class="font-bold text-gray-800">Tailwind CSS</h4>
+                <p class="text-xs text-gray-500 mt-2">Modern UI Design</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-6 sm:p-8 flex items-start gap-4">
+        <div class="mt-1 text-red-600 text-2xl flex-shrink-0 animate-pulse">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+            <h4 class="font-bold text-red-800 text-lg mb-2" data-translate="medical_disclaimer">Medical Disclaimer</h4>
+            <p class="text-red-700 text-sm leading-relaxed">
+                The SmartCare AI Disease Risk Prediction System is intended for <strong>educational and informational purposes only</strong>. The AI-generated risk assessments are based on statistical modeling and should <strong>never</strong> be used as a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Add translations for the about page dynamically
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof translations !== 'undefined') {
+            Object.assign(translations.en, {
+                about_title: "About SmartCare AI",
+                about_subtitle: "Revolutionizing early disease detection with advanced machine learning algorithms and a premium user experience.",
+                our_mission: "Our Mission",
+                our_vision: "Our Vision",
+                tech_stack: "Technology Stack",
+                medical_disclaimer: "Medical Disclaimer"
+            });
+            Object.assign(translations.mr, {
+                about_title: "स्मार्टकेअर एआय बद्दल",
+                about_subtitle: "प्रगत मशीन लर्निंग अल्गोरिदम आणि प्रीमियम वापरकर्ता अनुभवासह लवकर रोग शोधण्यात क्रांती घडवून आणणे.",
+                our_mission: "आमचे ध्येय",
+                our_vision: "आमचा दृष्टिकोन",
+                tech_stack: "तंत्रज्ञान स्टॅक",
+                medical_disclaimer: "वैद्यकीय अस्वीकरण"
+            });
+            applyTranslations();
+        }
+    });
+</script>
+{% endblock %}

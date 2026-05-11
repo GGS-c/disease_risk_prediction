@@ -1,0 +1,605 @@
+{% extends 'base.html' %}
+{% block title %}Heart Risk Prediction - SmartCare AI{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8 relative">
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center transition-all duration-300">
+        <div class="relative w-32 h-32 flex items-center justify-center mb-6">
+            <div class="absolute inset-0 rounded-full border-4 border-red-100 animate-ping"></div>
+            <div class="absolute inset-2 rounded-full border-4 border-red-200 animate-pulse"></div>
+            <i class="fa-solid fa-heart-pulse text-6xl text-red-500 animate-bounce-slow"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800 tracking-wide" data-i18n="analyzing">Analyzing Clinical Parameters...</h2>
+        <p class="text-gray-500 mt-2" data-i18n="processing">Our AI is processing your health data</p>
+    </div>
+
+    <div class="text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 text-red-500 mb-4 text-3xl shadow-sm border border-red-100">
+            ❤️
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900 sm:text-4xl" data-i18n="page_title">Heart Risk Prediction</h1>
+        <p class="mt-3 text-lg text-gray-500 max-w-2xl mx-auto" data-i18n="page_desc">Enter symptoms and lifestyle details to estimate your heart disease risk using our advanced ML model.</p>
+        
+        {% if not session.get('patient_id') %}
+        <div class="mt-6 p-4 bg-medical-50 text-medical-800 rounded-xl max-w-2xl mx-auto inline-flex items-center border border-medical-100 shadow-sm">
+            <svg class="w-5 h-5 mr-3 text-medical-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+            <span data-i18n="not_logged_in" id="not_logged_in_span">You are not logged in. <a href="/login" class="font-bold underline hover:text-medical-900 ml-1">Log in</a> to save predictions to your health profile.</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-8 py-5 border-b border-gray-100 bg-gray-50/50 flex flex-wrap items-center justify-between gap-4">
+            <h3 class="text-lg font-bold text-gray-800" data-i18n="health_questionnaire">Health Questionnaire</h3>
+            <div class="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-gray-200 shadow-sm">
+                <label class="text-sm font-medium text-slate-600 cursor-pointer" for="voiceLang" data-i18n="select_language">🌐 Select Language:</label>
+                <select id="voiceLang" onchange="updateLanguage()" class="text-sm font-bold text-sky-700 bg-transparent outline-none cursor-pointer border-none p-0 focus:ring-0">
+                    <option value="EN">English</option>
+                    <option value="MR">मराठी</option>
+                    <option value="HI">हिंदी</option>
+                </select>
+            </div>
+        </div>
+        <div class="p-8">
+            <form action="/predict" method="POST">
+                {% set sections = [
+                    ('Symptoms', [
+                        ('Chest_Pain', 'Chest Pain', 'Pain or discomfort in your chest area, like pressure or tightness.', 'Example: pressure when climbing stairs.', true),
+                        ('Shortness_of_Breath', 'Shortness of Breath', 'Difficulty breathing or feeling like you cannot catch your breath.', 'Example: struggling during a short walk.', false),
+                        ('Fatigue', 'Fatigue', 'Feeling very tired, weak, or low on energy for no clear reason.', 'Example: feeling drained after a normal day.', false),
+                        ('Palpitations', 'Palpitations', 'A fast, fluttering, or irregular heartbeat.', 'Example: heart racing while resting.', false),
+                        ('Dizziness', 'Dizziness', 'Feeling lightheaded, unsteady, or like you might faint.', 'Example: wobbling when standing up quickly.', false),
+                        ('Swelling', 'Swelling', 'Puffiness in legs, ankles, or body from fluid buildup.', 'Example: swollen feet at the end of the day.', false),
+                        ('Pain_Arms_Jaw_Back', 'Pain in Arms/Jaw/Back', 'Discomfort in your arms, jaw, or back, often linked to heart stress.', 'Example: tightness spreading from chest to arm.', false),
+                        ('Cold_Sweats_Nausea', 'Cold Sweats/Nausea', 'Sweating without heat or feeling sick to your stomach.', 'Example: breaking out in sweat while resting.', false)
+                    ]),
+                    ('Medical Conditions', [
+                        ('High_BP', 'High Blood Pressure', 'Blood pressure that is higher than normal, which puts stress on your heart.', 'Example: diagnosed high BP or taking BP medicine.', true),
+                        ('High_Cholesterol', 'High Cholesterol', 'A high level of fatty substances in your blood.', 'Example: a blood test showed high cholesterol.', false),
+                        ('Diabetes', 'Diabetes', 'A condition where your blood sugar level is higher than normal.', 'Example: blood sugar checks above target.', false),
+                        ('Obesity', 'Obesity', 'Carrying more body weight than is healthy for your height.', 'Example: a BMI above a healthy range.', false)
+                    ]),
+                    ('Lifestyle & History', [
+                        ('Smoking', 'Smoking', 'Regular cigarette or tobacco use.', 'Example: smoking daily or occasionally.', false),
+                        ('Sedentary_Lifestyle', 'Sedentary Lifestyle', 'Spending most of your day sitting with little exercise.', 'Example: desk work without regular movement.', false),
+                        ('Family_History', 'Family History', 'A history of heart disease in your parents or close relatives.', 'Example: one or more family members had heart disease.', false),
+                        ('Chronic_Stress', 'Chronic Stress', 'Long-term emotional or mental stress that affects your health.', 'Example: feeling stressed almost every day.', false)
+                    ])
+                ] %}
+
+                <div class="space-y-6 mb-8">
+                    {% for section_title, section_fields in sections %}
+                    <div class="rounded-3xl bg-sky-50/90 border border-sky-100 p-6 shadow-sm transition hover:shadow-md">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 class="text-xl font-semibold text-slate-900" data-i18n="sec_title_{{ loop.index }}">{{ section_title }}</h2>
+                                <p class="mt-1 text-sm text-slate-500" data-i18n="sec_desc_{{ loop.index }}">Answer the questions below to help us understand your current health profile.</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            {% for name, label, description, example, critical in section_fields %}
+                            <div class="rounded-3xl p-4 bg-white border {{ 'border-red-200 bg-red-50/60' if critical else 'border-slate-200' }} shadow-sm transition hover:border-sky-300">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <label for="{{ name }}" class="block text-sm font-semibold text-slate-800" data-i18n="label_{{ name }}">{{ label }}</label>
+                                        <button type="button" onclick="speakInstruction('{{ name }}')" class="group relative flex h-7 w-7 items-center justify-center rounded-full bg-sky-50 border border-sky-100 shadow-sm text-lg hover:scale-110 active:scale-95 transition-transform" aria-label="Play audio instruction">
+                                            🔊
+                                            <span class="pointer-events-none absolute -top-10 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:block group-hover:opacity-100" data-i18n="click_to_hear">Click to hear instruction</span>
+                                        </button>
+                                    </div>
+                                    <span class="relative inline-flex flex-shrink-0 items-center text-sky-700 group" tabindex="0">
+                                        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-700 text-xs font-bold">i</span>
+                                        <span class="pointer-events-none absolute -top-1 left-1/2 z-10 hidden w-64 -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600 shadow-lg ring-1 ring-slate-200 group-hover:block group-focus:block">
+                                            <span class="font-semibold text-slate-800" data-i18n="what_does_this_mean">What does this mean?</span>
+                                            <span class="mt-2 block" data-i18n="desc_{{ name }}">{{ description }}</span>
+                                        </span>
+                                    </span>
+                                </div>
+                                <p class="mt-3 text-sm text-slate-600" data-i18n="desc_{{ name }}">{{ description }}</p>
+                                <p class="mt-1 text-sm text-slate-400" data-i18n="ex_{{ name }}">{{ example }}</p>
+                                <select name="{{ name }}" id="{{ name }}" required class="mt-4 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-200 cursor-pointer">
+                                    <option value="" data-i18n="opt_choose">Choose...</option>
+                                    <option value="1" data-i18n="opt_yes">Yes</option>
+                                    <option value="0" data-i18n="opt_no">No</option>
+                                </select>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                    <div class="rounded-3xl p-4 bg-white border border-slate-200 shadow-sm transition hover:border-sky-300">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <label class="block text-sm font-semibold text-slate-800" for="Gender" data-i18n="label_Gender">Gender</label>
+                                <button type="button" onclick="speakInstruction('Gender')" class="group relative flex h-7 w-7 items-center justify-center rounded-full bg-sky-50 border border-sky-100 shadow-sm text-lg hover:scale-110 active:scale-95 transition-transform" aria-label="Play audio instruction">
+                                    🔊
+                                    <span class="pointer-events-none absolute -top-10 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:block group-hover:opacity-100" data-i18n="click_to_hear">Click to hear instruction</span>
+                                </button>
+                            </div>
+                            <span class="text-sm text-slate-500" data-i18n="req_Gender">Required</span>
+                        </div>
+                        <select name="Gender" id="Gender" required class="mt-4 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-200 cursor-pointer">
+                            <option value="" data-i18n="opt_sel_gender">Select Gender...</option>
+                            <option value="1" data-i18n="opt_male">Male</option>
+                            <option value="0" data-i18n="opt_female">Female</option>
+                        </select>
+                    </div>
+
+                    <div class="rounded-3xl p-4 bg-white border border-slate-200 shadow-sm transition hover:border-sky-300">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <label class="block text-sm font-semibold text-slate-800" for="Age" data-i18n="label_Age">Age</label>
+                                <button type="button" onclick="speakInstruction('Age')" class="group relative flex h-7 w-7 items-center justify-center rounded-full bg-sky-50 border border-sky-100 shadow-sm text-lg hover:scale-110 active:scale-95 transition-transform" aria-label="Play audio instruction">
+                                    🔊
+                                    <span class="pointer-events-none absolute -top-10 left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:block group-hover:opacity-100" data-i18n="click_to_hear">Click to hear instruction</span>
+                                </button>
+                            </div>
+                            <span class="text-sm text-slate-500" data-i18n="req_Age">Years</span>
+                        </div>
+                        <input type="number" name="Age" id="Age" min="1" max="120" required class="mt-4 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-200" placeholder="e.g. 45" data-i18n-placeholder="ex_Age">
+                        <p class="mt-2 text-sm text-slate-500" data-i18n="desc_Age">Your current age helps personalize the risk estimate.</p>
+                    </div>
+
+                    <div class="rounded-3xl p-4 bg-white border border-slate-200 shadow-sm transition hover:border-sky-300">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <label class="block text-sm font-semibold text-slate-800" for="City" data-i18n="label_City">City</label>
+                            </div>
+                            <span class="text-sm text-slate-500" data-i18n="req_City">Required</span>
+                        </div>
+                        <select name="City" id="City" required class="mt-4 block w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-2 focus:ring-sky-200 cursor-pointer">
+                            <option value="" data-i18n="opt_sel_city">Select City...</option>
+                            <option value="Nashik" data-i18n="opt_nashik">Nashik</option>
+                            <option value="Pune" data-i18n="opt_pune">Pune</option>
+                            <option value="Jalgaon" data-i18n="opt_jalgaon">Jalgaon</option>
+                            <option value="Mumbai" data-i18n="opt_mumbai">Mumbai</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-center border-t border-slate-200 pt-6">
+                    <button type="submit" class="w-full md:w-auto px-10 py-4 rounded-3xl bg-sky-600 text-white font-bold shadow-lg shadow-sky-200/40 transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-300">
+                        <svg class="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        <span data-i18n="btn_analyze">Analyze Heart Risk</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const uiTranslations = {
+        EN: {
+            analyzing: "Analyzing Clinical Parameters...",
+            processing: "Our AI is processing your health data",
+            page_title: "Heart Risk Prediction",
+            page_desc: "Enter symptoms and lifestyle details to estimate your heart disease risk using our advanced ML model.",
+            not_logged_in: "You are not logged in. <a href='/login' class='font-bold underline hover:text-medical-900 ml-1'>Log in</a> to save predictions to your health profile.",
+            health_questionnaire: "Health Questionnaire",
+            select_language: "🌐 Select Language:",
+            sec_title_1: "Symptoms",
+            sec_desc_1: "Answer the questions below to help us understand your current health profile.",
+            sec_title_2: "Medical Conditions",
+            sec_desc_2: "Answer the questions below to help us understand your current health profile.",
+            sec_title_3: "Lifestyle & History",
+            sec_desc_3: "Answer the questions below to help us understand your current health profile.",
+            
+            label_Chest_Pain: "Chest Pain",
+            desc_Chest_Pain: "Pain or discomfort in your chest area, like pressure or tightness.",
+            ex_Chest_Pain: "Example: pressure when climbing stairs.",
+            label_Shortness_of_Breath: "Shortness of Breath",
+            desc_Shortness_of_Breath: "Difficulty breathing or feeling like you cannot catch your breath.",
+            ex_Shortness_of_Breath: "Example: struggling during a short walk.",
+            label_Fatigue: "Fatigue",
+            desc_Fatigue: "Feeling very tired, weak, or low on energy for no clear reason.",
+            ex_Fatigue: "Example: feeling drained after a normal day.",
+            label_Palpitations: "Palpitations",
+            desc_Palpitations: "A fast, fluttering, or irregular heartbeat.",
+            ex_Palpitations: "Example: heart racing while resting.",
+            label_Dizziness: "Dizziness",
+            desc_Dizziness: "Feeling lightheaded, unsteady, or like you might faint.",
+            ex_Dizziness: "Example: wobbling when standing up quickly.",
+            label_Swelling: "Swelling",
+            desc_Swelling: "Puffiness in legs, ankles, or body from fluid buildup.",
+            ex_Swelling: "Example: swollen feet at the end of the day.",
+            label_Pain_Arms_Jaw_Back: "Pain in Arms/Jaw/Back",
+            desc_Pain_Arms_Jaw_Back: "Discomfort in your arms, jaw, or back, often linked to heart stress.",
+            ex_Pain_Arms_Jaw_Back: "Example: tightness spreading from chest to arm.",
+            label_Cold_Sweats_Nausea: "Cold Sweats/Nausea",
+            desc_Cold_Sweats_Nausea: "Sweating without heat or feeling sick to your stomach.",
+            ex_Cold_Sweats_Nausea: "Example: breaking out in sweat while resting.",
+            label_High_BP: "High Blood Pressure",
+            desc_High_BP: "Blood pressure that is higher than normal, which puts stress on your heart.",
+            ex_High_BP: "Example: diagnosed high BP or taking BP medicine.",
+            label_High_Cholesterol: "High Cholesterol",
+            desc_High_Cholesterol: "A high level of fatty substances in your blood.",
+            ex_High_Cholesterol: "Example: a blood test showed high cholesterol.",
+            label_Diabetes: "Diabetes",
+            desc_Diabetes: "A condition where your blood sugar level is higher than normal.",
+            ex_Diabetes: "Example: blood sugar checks above target.",
+            label_Obesity: "Obesity",
+            desc_Obesity: "Carrying more body weight than is healthy for your height.",
+            ex_Obesity: "Example: a BMI above a healthy range.",
+            label_Smoking: "Smoking",
+            desc_Smoking: "Regular cigarette or tobacco use.",
+            ex_Smoking: "Example: smoking daily or occasionally.",
+            label_Sedentary_Lifestyle: "Sedentary Lifestyle",
+            desc_Sedentary_Lifestyle: "Spending most of your day sitting with little exercise.",
+            ex_Sedentary_Lifestyle: "Example: desk work without regular movement.",
+            label_Family_History: "Family History",
+            desc_Family_History: "A history of heart disease in your parents or close relatives.",
+            ex_Family_History: "Example: one or more family members had heart disease.",
+            label_Chronic_Stress: "Chronic Stress",
+            desc_Chronic_Stress: "Long-term emotional or mental stress that affects your health.",
+            ex_Chronic_Stress: "Example: feeling stressed almost every day.",
+            
+            opt_choose: "Choose...",
+            opt_yes: "Yes",
+            opt_no: "No",
+            click_to_hear: "Click to hear instruction",
+            what_does_this_mean: "What does this mean?",
+            
+            label_Gender: "Gender",
+            req_Gender: "Required",
+            opt_sel_gender: "Select Gender...",
+            opt_male: "Male",
+            opt_female: "Female",
+            label_Age: "Age",
+            req_Age: "Years",
+            ex_Age: "e.g. 45",
+            desc_Age: "Your current age helps personalize the risk estimate.",
+            label_City: "City",
+            req_City: "Required",
+            opt_sel_city: "Select City...",
+            opt_nashik: "Nashik",
+            opt_pune: "Pune",
+            opt_jalgaon: "Jalgaon",
+            opt_mumbai: "Mumbai",
+            
+            btn_analyze: "Analyze Heart Risk"
+        },
+        MR: {
+            analyzing: "वैद्यकीय मापदंडांचे विश्लेषण करत आहे...",
+            processing: "आमचे AI तुमच्या आरोग्य डेटावर प्रक्रिया करत आहे",
+            page_title: "हृदय जोखीम अंदाज",
+            page_desc: "आमच्या प्रगत मशीन लर्निंग मॉडेलचा वापर करून तुमच्या हृदयरोगाचा धोका जाणून घेण्यासाठी लक्षणे आणि जीवनशैलीचे तपशील प्रविष्ट करा.",
+            not_logged_in: "तुम्ही लॉग इन केलेले नाही. तुमचे अहवाल सेव्ह करण्यासाठी <a href='/login' class='font-bold underline hover:text-medical-900 ml-1'>लॉग इन</a> करा.",
+            health_questionnaire: "आरोग्य प्रश्नावली",
+            select_language: "🌐 भाषा निवडा:",
+            sec_title_1: "लक्षणे",
+            sec_desc_1: "तुमची सध्याची आरोग्य स्थिती समजून घेण्यासाठी खालील प्रश्नांची उत्तरे द्या.",
+            sec_title_2: "वैद्यकीय परिस्थिती",
+            sec_desc_2: "तुमची सध्याची आरोग्य स्थिती समजून घेण्यासाठी खालील प्रश्नांची उत्तरे द्या.",
+            sec_title_3: "जीवनशैली आणि इतिहास",
+            sec_desc_3: "तुमची सध्याची आरोग्य स्थिती समजून घेण्यासाठी खालील प्रश्नांची उत्तरे द्या.",
+
+            label_Chest_Pain: "छातीत दुखणे",
+            desc_Chest_Pain: "तुमच्या छातीत दुखणे किंवा अस्वस्थता, जसे की दबाव किंवा घट्टपणा.",
+            ex_Chest_Pain: "उदा: पायऱ्या चढताना छातीत दाब जाणवणे.",
+            label_Shortness_of_Breath: "धाप लागणे",
+            desc_Shortness_of_Breath: "श्वास घेण्यास त्रास होणे किंवा श्वास घेता न येणे.",
+            ex_Shortness_of_Breath: "उदा: थोड्या चालण्यानेही दम लागणे.",
+            label_Fatigue: "थकवा",
+            desc_Fatigue: "कोणत्याही स्पष्ट कारणाशिवाय खूप थकवा किंवा अशक्तपणा जाणवणे.",
+            ex_Fatigue: "उदा: सामान्य दिवसानंतरही खूप थकल्यासारखे वाटणे.",
+            label_Palpitations: "धडधडणे",
+            desc_Palpitations: "हृदयाची धडधड असामान्यपणे जलद किंवा अनियमित होणे.",
+            ex_Palpitations: "उदा: विश्रांती घेतानाही हृदयाची धडधड वाढणे.",
+            label_Dizziness: "चक्कर येणे",
+            desc_Dizziness: "हलके वाटणे, अस्थिर वाटणे किंवा चक्कर येण्याची भावना.",
+            ex_Dizziness: "उदा: पटकन उभे राहिल्यावर चक्कर येणे.",
+            label_Swelling: "सूज",
+            desc_Swelling: "पाय, घोटे किंवा शरीरात द्रव जमा झाल्यामुळे सूज येणे.",
+            ex_Swelling: "उदा: दिवसाच्या शेवटी पायांना सूज येणे.",
+            label_Pain_Arms_Jaw_Back: "हात/जबडा/पाठ दुखणे",
+            desc_Pain_Arms_Jaw_Back: "तुमच्या हातांमध्ये, जबड्यात किंवा पाठीत वेदना, जे सहसा हृदयाच्या ताणाशी जोडलेले असते.",
+            ex_Pain_Arms_Jaw_Back: "उदा: छातीतून हातापर्यंत वेदना पसरणे.",
+            label_Cold_Sweats_Nausea: "थंड घाम/मळमळ",
+            desc_Cold_Sweats_Nausea: "उष्णतेशिवाय घाम येणे किंवा मळमळणे.",
+            ex_Cold_Sweats_Nausea: "उदा: विश्रांती घेताना अचानक घाम फुटणे.",
+            label_High_BP: "उच्च रक्तदाब",
+            desc_High_BP: "रक्तदाब सामान्यपेक्षा जास्त असणे, ज्यामुळे हृदयावर ताण येतो.",
+            ex_High_BP: "उदा: बीपीचे निदान झालेले असणे किंवा औषध घेणे.",
+            label_High_Cholesterol: "उच्च कोलेस्ट्रॉल",
+            desc_High_Cholesterol: "तुमच्या रक्तात चरबीयुक्त पदार्थांचे प्रमाण जास्त असणे.",
+            ex_High_Cholesterol: "उदा: रक्त तपासणीत जास्त कोलेस्ट्रॉल दिसणे.",
+            label_Diabetes: "मधुमेह (शुगर)",
+            desc_Diabetes: "अशी स्थिती जिथे तुमच्या रक्तातील साखरेची पातळी सामान्यपेक्षा जास्त असते.",
+            ex_Diabetes: "उदा: रक्तातील साखर लक्ष्यापेक्षा जास्त असणे.",
+            label_Obesity: "लठ्ठपणा",
+            desc_Obesity: "तुमच्या उंचीसाठी निरोगी असलेल्या वजनापेक्षा जास्त शरीर वजन असणे.",
+            ex_Obesity: "उदा: बीएमआय (BMI) निरोगी श्रेणीपेक्षा जास्त असणे.",
+            label_Smoking: "धूम्रपान",
+            desc_Smoking: "नियमित सिगारेट किंवा तंबाखूचा वापर.",
+            ex_Smoking: "उदा: रोज किंवा कधीकधी धूम्रपान करणे.",
+            label_Sedentary_Lifestyle: "बैठी जीवनशैली",
+            desc_Sedentary_Lifestyle: "कमी व्यायामासह दिवसाचा बहुतांश वेळ बसून घालवणे.",
+            ex_Sedentary_Lifestyle: "उदा: नियमित हालचालीशिवाय डेस्कवर काम करणे.",
+            label_Family_History: "कौटुंबिक इतिहास",
+            desc_Family_History: "तुमच्या पालकांना किंवा जवळच्या नातेवाईकांना हृदयरोगाचा इतिहास असणे.",
+            ex_Family_History: "उदा: कुटुंबातील एक किंवा अधिक सदस्यांना हृदयरोग होता.",
+            label_Chronic_Stress: "दीर्घकाळ ताणतणाव",
+            desc_Chronic_Stress: "दीर्घकालीन भावनिक किंवा मानसिक ताण जो तुमच्या आरोग्यावर परिणाम करतो.",
+            ex_Chronic_Stress: "उदा: जवळजवळ दररोज तणाव जाणवणे.",
+            
+            opt_choose: "निवडा...",
+            opt_yes: "होय",
+            opt_no: "नाही",
+            click_to_hear: "सूचना ऐकण्यासाठी क्लिक करा",
+            what_does_this_mean: "याचा अर्थ काय?",
+
+            label_Gender: "लिंग",
+            req_Gender: "आवश्यक",
+            opt_sel_gender: "लिंग निवडा...",
+            opt_male: "पुरुष",
+            opt_female: "स्त्री",
+            label_Age: "वय",
+            req_Age: "वर्षे",
+            ex_Age: "उदा: 45",
+            desc_Age: "तुमचे सध्याचे वय जोखीम अंदाज वैयक्तिकृत करण्यात मदत करते.",
+            label_City: "शहर",
+            req_City: "आवश्यक",
+            opt_sel_city: "शहर निवडा...",
+            opt_nashik: "नाशिक",
+            opt_pune: "पुणे",
+            opt_jalgaon: "जळगाव",
+            opt_mumbai: "मुंबई",
+
+            btn_analyze: "हृदय जोखीम तपासा"
+        },
+        HI: {
+            analyzing: "मेडिकल पैरामीटर्स का विश्लेषण हो रहा है...",
+            processing: "हमारा AI आपके स्वास्थ्य डेटा की जाँच कर रहा है",
+            page_title: "हृदय रोग जोखिम की भविष्यवाणी",
+            page_desc: "हमारे उन्नत मशीन लर्निंग मॉडल का उपयोग करके अपने हृदय रोग के जोखिम का अनुमान लगाने के लिए लक्षण और जीवन शैली विवरण दर्ज करें।",
+            not_logged_in: "आपने लॉग इन नहीं किया है। अपनी रिपोर्ट सहेजने के लिए <a href='/login' class='font-bold underline hover:text-medical-900 ml-1'>लॉग इन</a> करें।",
+            health_questionnaire: "स्वास्थ्य प्रश्नावली",
+            select_language: "🌐 भाषा चुनें:",
+            sec_title_1: "लक्षण",
+            sec_desc_1: "आपके वर्तमान स्वास्थ्य प्रोफ़ाइल को समझने में हमारी मदद करने के लिए नीचे दिए गए प्रश्नों के उत्तर दें।",
+            sec_title_2: "मेडिकल स्थितियाँ",
+            sec_desc_2: "आपके वर्तमान स्वास्थ्य प्रोफ़ाइल को समझने में हमारी मदद करने के लिए नीचे दिए गए प्रश्नों के उत्तर दें।",
+            sec_title_3: "जीवनशैली और इतिहास",
+            sec_desc_3: "आपके वर्तमान स्वास्थ्य प्रोफ़ाइल को समझने में हमारी मदद करने के लिए नीचे दिए गए प्रश्नों के उत्तर दें।",
+
+            label_Chest_Pain: "सीने में दर्द",
+            desc_Chest_Pain: "आपके सीने के हिस्से में दर्द या बेचैनी, जैसे दबाव या जकड़न।",
+            ex_Chest_Pain: "उदाहरण: सीढ़ियाँ चढ़ते समय सीने में दबाव।",
+            label_Shortness_of_Breath: "साँस फूलना",
+            desc_Shortness_of_Breath: "साँस लेने में कठिनाई या ऐसा महसूस होना कि आप साँस नहीं ले पा रहे हैं।",
+            ex_Shortness_of_Breath: "उदाहरण: थोड़ी दूर चलने के दौरान परेशानी।",
+            label_Fatigue: "थकान",
+            desc_Fatigue: "बिना किसी स्पष्ट कारण के बहुत थका हुआ, कमज़ोर या ऊर्जा में कमी महसूस करना।",
+            ex_Fatigue: "उदाहरण: सामान्य दिन के बाद बहुत थकावट महसूस होना।",
+            label_Palpitations: "धड़कन का तेज़ होना",
+            desc_Palpitations: "दिल की धड़कन का तेज़, फड़फड़ाता हुआ या अनियमित होना।",
+            ex_Palpitations: "उदाहरण: आराम करते समय दिल की धड़कन बढ़ना।",
+            label_Dizziness: "चक्कर आना",
+            desc_Dizziness: "सिर हल्का लगना, अस्थिर महसूस करना या ऐसा लगना कि आप बेहोश हो सकते हैं।",
+            ex_Dizziness: "उदाहरण: जल्दी खड़े होने पर चक्कर आना।",
+            label_Swelling: "सूजन",
+            desc_Swelling: "द्रव जमा होने से पैरों, टखनों या शरीर में सूजन।",
+            ex_Swelling: "उदाहरण: दिन के अंत में पैरों में सूजन।",
+            label_Pain_Arms_Jaw_Back: "हाथ/जबड़े/पीठ में दर्द",
+            desc_Pain_Arms_Jaw_Back: "आपके हाथों, जबड़े या पीठ में बेचैनी, जो अक्सर हृदय के तनाव से जुड़ी होती है।",
+            ex_Pain_Arms_Jaw_Back: "उदाहरण: सीने से हाथ तक दर्द फैलना।",
+            label_Cold_Sweats_Nausea: "ठंडा पसीना/मतली",
+            desc_Cold_Sweats_Nausea: "बिना गर्मी के पसीना आना या पेट में मतली महसूस होना।",
+            ex_Cold_Sweats_Nausea: "उदाहरण: आराम करते समय पसीना आना।",
+            label_High_BP: "उच्च रक्तचाप (हाई बीपी)",
+            desc_High_BP: "रक्तचाप जो सामान्य से अधिक है, जो आपके दिल पर तनाव डालता है।",
+            ex_High_BP: "उदाहरण: हाई बीपी का निदान होना या बीपी की दवा लेना।",
+            label_High_Cholesterol: "उच्च कोलेस्ट्रॉल",
+            desc_High_Cholesterol: "आपके रक्त में वसायुक्त पदार्थों का उच्च स्तर।",
+            ex_High_Cholesterol: "उदाहरण: रक्त परीक्षण में उच्च कोलेस्ट्रॉल दिखाई देना।",
+            label_Diabetes: "मधुमेह (शुगर)",
+            desc_Diabetes: "एक ऐसी स्थिति जहाँ आपके रक्त शर्करा का स्तर सामान्य से अधिक होता है।",
+            ex_Diabetes: "उदाहरण: ब्लड शुगर का लक्ष्य से अधिक होना।",
+            label_Obesity: "मोटापा",
+            desc_Obesity: "आपकी ऊंचाई के लिए स्वस्थ वजन से अधिक शरीर का वजन होना।",
+            ex_Obesity: "उदाहरण: बीएमआई (BMI) का स्वस्थ सीमा से अधिक होना।",
+            label_Smoking: "धूम्रपान",
+            desc_Smoking: "नियमित सिगरेट या तंबाकू का उपयोग।",
+            ex_Smoking: "उदाहरण: रोजाना या कभी-कभी धूम्रपान करना।",
+            label_Sedentary_Lifestyle: "निष्क्रिय जीवनशैली",
+            desc_Sedentary_Lifestyle: "कम व्यायाम के साथ अपने दिन का अधिकांश समय बैठे-बैठे बिताना।",
+            ex_Sedentary_Lifestyle: "उदाहरण: नियमित रूप से हिले-डुले बिना डेस्क का काम करना।",
+            label_Family_History: "पारिवारिक इतिहास",
+            desc_Family_History: "आपके माता-पिता या करीबी रिश्तेदारों में हृदय रोग का इतिहास।",
+            ex_Family_History: "उदाहरण: परिवार के एक या अधिक सदस्यों को हृदय रोग था।",
+            label_Chronic_Stress: "लंबे समय से तनाव",
+            desc_Chronic_Stress: "लंबे समय तक भावनात्मक या मानसिक तनाव जो आपके स्वास्थ्य को प्रभावित करता है।",
+            ex_Chronic_Stress: "उदाहरण: लगभग हर दिन तनाव महसूस करना।",
+
+            opt_choose: "चुनें...",
+            opt_yes: "हाँ",
+            opt_no: "नहीं",
+            click_to_hear: "निर्देश सुनने के लिए क्लिक करें",
+            what_does_this_mean: "इसका क्या मतलब है?",
+
+            label_Gender: "लिंग",
+            req_Gender: "आवश्यक",
+            opt_sel_gender: "लिंग चुनें...",
+            opt_male: "पुरुष",
+            opt_female: "महिला",
+            label_Age: "आयु",
+            req_Age: "वर्ष",
+            ex_Age: "उदा: 45",
+            desc_Age: "आपकी वर्तमान आयु जोखिम का अनुमान लगाने में मदद करती है।",
+            label_City: "शहर",
+            req_City: "आवश्यक",
+            opt_sel_city: "शहर चुनें...",
+            opt_nashik: "नासिक",
+            opt_pune: "पुणे",
+            opt_jalgaon: "जलगाँव",
+            opt_mumbai: "मुंबई",
+
+            btn_analyze: "हृदय जोखिम की जांच करें"
+        }
+    };
+
+    const voiceInstructions = {
+        EN: {
+            Chest_Pain: "If you have chest pain, select yes otherwise select no.",
+            Shortness_of_Breath: "If you have difficulty breathing, select yes otherwise select no.",
+            Fatigue: "If you feel very tired without reason, select yes otherwise select no.",
+            Palpitations: "If your heart beats abnormally fast, select yes otherwise select no.",
+            Dizziness: "If you feel dizzy, select yes otherwise select no.",
+            Swelling: "If you have swelling in your legs, select yes otherwise select no.",
+            Pain_Arms_Jaw_Back: "If you have pain in arms, jaw, or back, select yes otherwise select no.",
+            Cold_Sweats_Nausea: "If you get cold sweats or nausea, select yes otherwise select no.",
+            High_BP: "If you have high blood pressure, select yes otherwise select no.",
+            High_Cholesterol: "If you have high cholesterol, select yes otherwise select no.",
+            Diabetes: "If you have diabetes, select yes otherwise select no.",
+            Obesity: "If you are overweight, select yes otherwise select no.",
+            Smoking: "If you smoke regularly, select yes otherwise select no.",
+            Sedentary_Lifestyle: "If you do not exercise, select yes otherwise select no.",
+            Family_History: "If your family has a history of heart disease, select yes otherwise select no.",
+            Chronic_Stress: "If you have chronic mental stress, select yes otherwise select no.",
+            Gender: "Please select your gender.",
+            Age: "Please enter your current age in years."
+        },
+        MR: {
+            Chest_Pain: "तुम्हाला छातीत दुखत असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Shortness_of_Breath: "तुम्हाला श्वास घेण्यास त्रास होत असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Fatigue: "तुम्हाला विनाकारण खूप थकवा येत असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Palpitations: "तुमच्या हृदयाची धडधड असामान्यपणे वाढली असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Dizziness: "तुम्हाला चक्कर येत असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Swelling: "तुमच्या पायांना सूज आली असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Pain_Arms_Jaw_Back: "तुमच्या हातांमध्ये, जबड्यात किंवा पाठीत वेदना जाणवत असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Cold_Sweats_Nausea: "तुम्हाला विनाकारण थंड घाम येत असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            High_BP: "तुमचा रक्तदाब जास्त असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            High_Cholesterol: "तुमचे कोलेस्ट्रॉल जास्त असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Diabetes: "तुम्हाला मधुमेह असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Obesity: "तुमचे वजन आवश्यकतेपेक्षा जास्त असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Smoking: "तुम्ही धूम्रपान करत असाल तर हो निवडा, नसेल तर नाही निवडा.",
+            Sedentary_Lifestyle: "तुम्ही व्यायाम करत नसाल तर हो निवडा, नसेल तर नाही निवडा.",
+            Family_History: "तुमच्या कुटुंबात कोणाला हृदयरोगाचा त्रास होता का? असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Chronic_Stress: "तुम्हाला दीर्घकाळ ताणतणाव जाणवत असेल तर हो निवडा, नसेल तर नाही निवडा.",
+            Gender: "कृपया तुमचे लिंग निवडा.",
+            Age: "कृपया तुमचे सध्याचे वय वर्षामध्ये टाका."
+        },
+        HI: {
+            Chest_Pain: "अगर आपको सीने में दर्द होता है तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Shortness_of_Breath: "अगर आपको साँस लेने में तकलीफ होती है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Fatigue: "अगर आपको बिना किसी कारण के बहुत थकान महसूस होती है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Palpitations: "अगर आपके दिल की धड़कन असामान्य रूप से तेज है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Dizziness: "अगर आपको चक्कर आते हैं, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Swelling: "अगर आपके पैरों या शरीर में सूजन है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Pain_Arms_Jaw_Back: "अगर आपके हाथों, जबड़े या पीठ में दर्द होता है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Cold_Sweats_Nausea: "अगर आपको बिना गर्मी के ठंडा पसीना आता है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            High_BP: "अगर आपको हाई ब्लड प्रेशर है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            High_Cholesterol: "अगर आपका कोलेस्ट्रॉल हाई है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Diabetes: "अगर आपको मधुमेह है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Obesity: "अगर आपका वजन बहुत ज्यादा है, तो हाँ चुनें, अन्यथा नहीं चुनें।",
+            Smoking: "क्या आप नियमित रूप से धूम्रपान करते हैं? हाँ या नहीं चुनें।",
+            Sedentary_Lifestyle: "क्या आप दिन भर बैठे रहते हैं और व्यायाम नहीं करते? हाँ या नहीं चुनें।",
+            Family_History: "क्या आपके परिवार में किसी को दिल की बीमारी रही है? हाँ या नहीं चुनें।",
+            Chronic_Stress: "क्या आप लंबे समय से मानसिक तनाव में हैं? हाँ या नहीं चुनें।",
+            Gender: "कृपया अपना लिंग चुनें।",
+            Age: "कृपया अपनी वर्तमान आयु दर्ज करें।"
+        }
+    };
+
+    function updateLanguage() {
+        const lang = document.getElementById('voiceLang').value;
+        const translations = uiTranslations[lang];
+
+        // Update Inner HTML
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (translations[key]) {
+                el.innerHTML = translations[key];
+            }
+        });
+
+        // Update Placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (translations[key]) {
+                el.setAttribute('placeholder', translations[key]);
+            }
+        });
+    }
+
+    let currentUtterance = null;
+
+    function speakText(text, lang) {
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+        
+        if (!text) return;
+
+        currentUtterance = new SpeechSynthesisUtterance(text);
+        let voices = window.speechSynthesis.getVoices();
+        
+        if (lang === 'MR') {
+            let mrVoice = voices.find(v => v.lang === 'mr-IN' || v.lang.includes('mr')) || 
+                          voices.find(v => v.lang === 'hi-IN' || v.lang.includes('hi')) || 
+                          voices.find(v => v.lang.includes('IN'));
+            if (mrVoice) {
+                currentUtterance.voice = mrVoice;
+                currentUtterance.lang = mrVoice.lang;
+            } else {
+                currentUtterance.lang = 'hi-IN';
+            }
+        } else if (lang === 'HI') {
+            let hiVoice = voices.find(v => v.lang === 'hi-IN' || v.lang.includes('hi')) || 
+                          voices.find(v => v.lang.includes('IN'));
+            if (hiVoice) {
+                currentUtterance.voice = hiVoice;
+                currentUtterance.lang = hiVoice.lang;
+            } else {
+                currentUtterance.lang = 'hi-IN';
+            }
+        } else {
+            let inVoice = voices.find(v => v.lang === 'en-IN' && (v.name.includes('Female') || v.name.includes('Google'))) || 
+                          voices.find(v => v.lang === 'en-IN') || 
+                          voices.find(v => v.lang.includes('en-GB'));
+            if (inVoice) {
+                currentUtterance.voice = inVoice;
+                currentUtterance.lang = inVoice.lang;
+            } else {
+                currentUtterance.lang = 'en-US';
+            }
+        }
+        
+        currentUtterance.rate = 0.85; 
+        currentUtterance.pitch = 1.0;
+        
+        window.speechSynthesis.speak(currentUtterance);
+    }
+
+    function speakInstruction(fieldId) {
+        const lang = document.getElementById('voiceLang').value;
+        const text = voiceInstructions[lang][fieldId];
+        speakText(text, lang);
+    }
+
+    // Initialize translations on load just in case (optional, defaults to English in HTML)
+    document.addEventListener("DOMContentLoaded", () => {
+        // Ensure browser loads voices
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+        }
+    });
+
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', () => {
+            if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            document.getElementById('loading-overlay').classList.add('flex');
+        });
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+    });
+</script>
+{% endblock %}

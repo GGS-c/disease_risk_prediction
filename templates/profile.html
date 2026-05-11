@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Patient Profile - SmartCare AI{% endblock %}
+{% block content %}
+<div class="space-y-6">
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Profile Info -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+                <div class="px-6 py-8 border-b border-gray-200 bg-gray-50/50 flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-full bg-medical-100 flex items-center justify-center text-medical-600 text-3xl font-bold shadow-sm border-4 border-white mb-4">
+                        {{ patient.name[0] | upper }}
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-800">{{ patient.name }}</h2>
+                    <p class="text-sm text-gray-500 mt-1">Patient Portal</p>
+                </div>
+                <div class="px-6 py-6">
+                    <dl class="space-y-5">
+                        <div class="flex items-center">
+                            <dt class="text-sm font-medium text-gray-500 w-24">Email</dt>
+                            <dd class="text-sm text-gray-900 font-medium">{{ patient.email }}</dd>
+                        </div>
+                        <div class="flex items-center">
+                            <dt class="text-sm font-medium text-gray-500 w-24">Mobile</dt>
+                            <dd class="text-sm text-gray-900">{{ patient.mobile }}</dd>
+                        </div>
+                        <div class="flex items-center">
+                            <dt class="text-sm font-medium text-gray-500 w-24">Age</dt>
+                            <dd class="text-sm text-gray-900">{{ patient.age }}</dd>
+                        </div>
+                        <div class="flex items-center">
+                            <dt class="text-sm font-medium text-gray-500 w-24">Gender</dt>
+                            <dd class="text-sm text-gray-900">{{ patient.gender }}</dd>
+                        </div>
+                        <div class="flex items-center">
+                            <dt class="text-sm font-medium text-gray-500 w-24">Joined</dt>
+                            <dd class="text-sm text-gray-900">{{ patient.created_at.strftime('%b %d, %Y') }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Full Prediction History -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
+                    <h3 class="text-lg font-bold text-gray-800">Full Prediction History</h3>
+                    <p class="mt-1 text-sm text-gray-500">A complete log of all your assessments.</p>
+                </div>
+                
+                {% if predictions %}
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Disease</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Result</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Probability</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for record in predictions %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {{ record.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900 border border-gray-200 px-3 py-1 rounded-full bg-gray-50 shadow-sm inline-block">{{ record.disease_type }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        {% if 'High' in record.risk_result %}
+                                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 shadow-sm">
+                                                {{ record.risk_result }}
+                                            </span>
+                                        {% else %}
+                                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 shadow-sm">
+                                                {{ record.risk_result }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {% if record.probability %}
+                                            {{ record.probability }}%
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-16 px-6">
+                        <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No predictions yet</h3>
+                        <p class="mt-1 text-sm text-gray-500">Your prediction history will appear here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

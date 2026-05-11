@@ -1,0 +1,1 @@
+save_model(model, "outputs/models/heart_model.pkl")

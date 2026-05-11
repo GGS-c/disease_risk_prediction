@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Smart Disease Risk Prediction{% endblock %}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 2s infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .bg-med-pattern {
+            position: relative;
+            z-index: 0;
+        }
+        .bg-med-pattern::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cpath d='M34 8h12v20h20v12H46v20H34V40H14V28h20z' fill='%23baddf8' fill-opacity='0.4'/%3E%3C/svg%3E");
+            background-size: 80px 80px;
+            z-index: -1;
+            pointer-events: none;
+        }
+        .bg-dark-pattern {
+            position: relative;
+            z-index: 1;
+        }
+        .bg-dark-pattern::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Ccircle cx='50' cy='50' r='45' fill='none' stroke='%23ffffff' stroke-opacity='0.04' stroke-width='1'/%3E%3Cpath d='M44 12h12v25h25v12H56v25H44V49H19V37h25z' fill='%23ffffff' fill-opacity='0.04'/%3E%3C/svg%3E");
+            background-size: 100px 100px;
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#e8f4fd] via-[#d0eaf9] to-[#e0f5f0] bg-med-pattern min-h-screen font-sans text-gray-800 flex flex-col">
+    <!-- Navigation -->
+    <nav class="bg-[#243B55] shadow-lg border-b border-[#243B55] sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex-shrink-0 flex items-center">
+                        <span class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-notes-medical text-[#00c9a7]"></i>
+                            <span data-translate="app_title">Smart Disease Prediction</span>
+                        </span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-1 sm:space-x-4">
+                    <button id="lang-toggle" onclick="toggleLanguage()" class="text-sm px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded-md transition-colors mr-2">
+                        <i class="fa-solid fa-globe mr-1"></i> <span id="current-lang">EN</span>
+                    </button>
+                    <a href="/" class="text-blue-100 hover:text-white px-3 py-2 rounded-md font-semibold transition-colors hidden sm:block text-sm" data-translate="nav_home">Home</a>
+                    <a href="/heart" class="text-blue-100 hover:text-white px-3 py-2 rounded-md font-semibold transition-colors hidden sm:block text-sm" data-translate="nav_heart">Heart</a>
+                    <a href="/liver" class="text-blue-100 hover:text-white px-3 py-2 rounded-md font-semibold transition-colors hidden sm:block text-sm" data-translate="nav_liver">Liver</a>
+                    <a href="/about" class="text-blue-100 hover:text-white px-3 py-2 rounded-md font-semibold transition-colors hidden sm:block text-sm" data-translate="nav_about">About</a>
+                    
+                    <div class="h-5 w-px bg-white/20 hidden sm:block mx-2"></div>
+                    
+                    {% if session.get('patient_id') %}
+                        <a href="/dashboard" class="text-blue-100 hover:text-white px-3 py-2 rounded-md font-semibold transition-colors text-sm hidden sm:block" data-translate="nav_dashboard">Dashboard</a>
+                        <a href="/logout" class="bg-red-500 text-white hover:bg-red-600 px-3 py-2 rounded-md font-bold shadow-sm transition-colors text-sm" data-translate="nav_logout">Logout</a>
+                    {% elif session.get('admin_logged_in') %}
+                        <a href="/admin" class="text-blue-100 hover:text-white px-3 py-2 rounded-md font-semibold transition-colors text-sm hidden sm:block">Admin</a>
+                        <a href="/admin_logout" class="bg-red-500 text-white hover:bg-red-600 px-3 py-2 rounded-md font-bold shadow-sm transition-colors text-sm">Logout</a>
+                    {% else %}
+                        <a href="/login" class="text-blue-100 hover:text-white px-3 py-2 rounded-md font-semibold transition-colors text-sm hidden sm:block" data-translate="nav_login">Login</a>
+                        <a href="/register" class="bg-[#00c9a7] text-[#0a2540] hover:bg-[#00b397] px-3 py-2 rounded-md font-bold shadow-sm transition-colors text-sm" data-translate="nav_register">Register</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full mt-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 mb-4 rounded-lg shadow-sm border-l-4 flex items-center
+                        {% if category == 'success' %}bg-green-50 border-green-500 text-green-700
+                        {% elif category == 'danger' %}bg-red-50 border-red-500 text-red-700
+                        {% else %}bg-blue-50 border-blue-500 text-blue-700{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center">
+            <p class="text-sm text-gray-500">
+                &copy; 2026 Smart Disease Risk Prediction System. All rights reserved.
+            </p>
+            <div class="mt-4 sm:mt-0 flex space-x-4">
+                <a href="/admin" class="text-sm text-gray-400 hover:text-gray-600 transition-colors">Admin</a>
+            </div>
+        </div>
+    </footer>
+    <!-- Mobile Bottom Navigation -->
+    <div class="sm:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-40 pb-safe">
+        <div class="flex justify-around items-center h-16 px-2">
+            <a href="/" class="flex flex-col items-center justify-center w-full h-full text-gray-500 hover:text-[#00c9a7]">
+                <i class="fa-solid fa-house text-lg mb-1"></i>
+                <span class="text-[10px] font-medium" data-translate="nav_home">Home</span>
+            </a>
+            <a href="/heart" class="flex flex-col items-center justify-center w-full h-full text-gray-500 hover:text-red-500">
+                <i class="fa-solid fa-heart-pulse text-lg mb-1"></i>
+                <span class="text-[10px] font-medium" data-translate="nav_heart">Heart</span>
+            </a>
+            <a href="/liver" class="flex flex-col items-center justify-center w-full h-full text-gray-500 hover:text-green-500">
+                <i class="fa-solid fa-dna text-lg mb-1"></i>
+                <span class="text-[10px] font-medium" data-translate="nav_liver">Liver</span>
+            </a>
+            {% if session.get('patient_id') %}
+            <a href="/dashboard" class="flex flex-col items-center justify-center w-full h-full text-gray-500 hover:text-[#0a2540]">
+                <i class="fa-solid fa-chart-line text-lg mb-1"></i>
+                <span class="text-[10px] font-medium" data-translate="nav_dashboard">Dash</span>
+            </a>
+            {% else %}
+            <a href="/login" class="flex flex-col items-center justify-center w-full h-full text-gray-500 hover:text-[#0a2540]">
+                <i class="fa-solid fa-user text-lg mb-1"></i>
+                <span class="text-[10px] font-medium" data-translate="nav_login">Login</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+
+
+    <!-- Translations & Interactivity -->
+    <script>
+        const translations = {
+            en: {
+                app_title: "Smart Disease Prediction",
+                nav_home: "Home", nav_heart: "Heart", nav_liver: "Liver", nav_about: "About",
+                nav_dashboard: "Dashboard", nav_login: "Login", nav_register: "Register", nav_logout: "Logout",
+                hero_title: "Smart Disease Risk Prediction System",
+                hero_subtitle: "A modern platform to predict multiple diseases like heart, kidney, and liver using machine learning with a clean and interactive interface.",
+                hero_badge: "AI Disease Prediction System",
+                get_started: "Get Started", log_in: "Log In", go_dashboard: "Go to Dashboard",
+                main_modules: "MAIN MODULES", select_disease: "Select Disease Prediction",
+                heart_desc: "Predict heart disease risk using symptoms and lifestyle data.",
+                liver_desc: "Predict liver disease using biological and lifestyle indicators.",
+                start_prediction: "Start Prediction",
+                analyzing: "Analyzing Clinical Parameters...",
+                lang_toggle: "EN"
+            },
+            mr: {
+                app_title: "स्मार्ट रोग अंदाज",
+                nav_home: "मुख्य पृष्ठ", nav_heart: "हृदय", nav_liver: "यकृत", nav_about: "आमच्याबद्दल",
+                nav_dashboard: "डॅशबोर्ड", nav_login: "लॉग इन", nav_register: "नोंदणी", nav_logout: "लॉग आउट",
+                hero_title: "स्मार्ट रोग जोखीम अंदाज प्रणाली",
+                hero_subtitle: "स्वच्छ आणि संवादात्मक इंटरफेससह मशीन लर्निंग वापरून हृदय आणि यकृत यांसारख्या अनेक रोगांचा अंदाज लावणारे आधुनिक व्यासपीठ.",
+                hero_badge: "एआय रोग अंदाज प्रणाली",
+                get_started: "सुरुवात करा", log_in: "लॉग इन", go_dashboard: "डॅशबोर्डवर जा",
+                main_modules: "मुख्य विभाग", select_disease: "रोग अंदाज निवडा",
+                heart_desc: "लक्षणे आणि जीवनशैली डेटा वापरून हृदयविकाराच्या धोक्याचा अंदाज घ्या.",
+                liver_desc: "जैविक आणि जीवनशैली निर्देशकांचा वापर करून यकृत रोगाचा अंदाज घ्या.",
+                start_prediction: "अंदाज सुरू करा",
+                analyzing: "क्लिनिकल पॅरामीटर्सचे विश्लेषण करत आहे...",
+                lang_toggle: "मराठी"
+            }
+        };
+
+        let currentLang = localStorage.getItem('appLang') || 'en';
+        
+        function applyTranslations() {
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (translations[currentLang][key]) {
+                    el.innerText = translations[currentLang][key];
+                }
+            });
+            document.getElementById('current-lang').innerText = currentLang === 'en' ? 'EN' : 'मराठी';
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'mr' : 'en';
+            localStorage.setItem('appLang', currentLang);
+            applyTranslations();
+        }
+
+        // Initialize translations on load
+        document.addEventListener('DOMContentLoaded', applyTranslations);
+    </script>
+</body>
+</html>
